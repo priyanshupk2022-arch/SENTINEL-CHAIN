@@ -1,0 +1,44 @@
+@import "tailwindcss";
+@import "../lib/tokens.css";
+
+@theme {
+  --color-void: var(--bg-void);
+  --color-surface-1: var(--bg-surface-1);
+  --color-surface-2: var(--bg-surface-2);
+  --color-overlay: var(--bg-overlay);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-glow: var(--border-glow);
+  --color-border-active: var(--border-active);
+
+  --color-emerald: var(--neon-emerald);
+  --color-cyan: var(--neon-cyan);
+  --color-indigo: var(--neon-indigo);
+  --color-amber: var(--laser-amber);
+  --color-crimson: var(--crimson-flare);
+  
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-glow-emerald: var(--shadow-glow-emerald);
+  --shadow-glow-amber: var(--shadow-glow-amber);
+  --shadow-glow-crimson: var(--shadow-glow-crimson);
+}
+
+body {
+  background-color: var(--bg-void);
+  color: white;
+  font-family: var(--font-sans);
+}

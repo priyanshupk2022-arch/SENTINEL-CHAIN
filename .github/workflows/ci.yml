@@ -1,0 +1,97 @@
+name: Aegis CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Unit & Adversarial Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: aegis_test
+          POSTGRES_USER: aegis_user
+          POSTGRES_PASSWORD: aegis_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libffi-dev libssl-dev
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+          pip install pytest pytest-asyncio locust alembic httpx
+
+      - name: Verify Alembic Migrations
+        run: |
+          python -m alembic upgrade head
+
+      - name: Run Full Test Suite
+        run: |
+          python -m pytest -v
+        env:
+          ENVIRONMENT: test
+          JWT_SECRET_KEY: test-ci-secret-key-2026
+
+  docker-build:
+    name: Container Build & Security Hardening Smoke Test
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          tags: aegis-proxy:ci-test
+
+      - name: Run Container Smoke Test
+        run: |
+          docker run -d --name aegis-smoke -p 8000:8000 aegis-proxy:ci-test
+          sleep 5
+          docker logs aegis-smoke
+          curl -f http://127.0.0.1:8000/health || exit 1
+          docker stop aegis-smoke

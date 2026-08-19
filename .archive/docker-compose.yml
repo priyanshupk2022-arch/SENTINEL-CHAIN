@@ -1,0 +1,75 @@
+version: '3.8'
+
+# ==============================================================================
+# Aegis AI Security Guardrail Proxy - Docker Compose Deployment
+# Self-Hosted | Air-Gapped Ready | SQLite WAL Persistence | Resource Limits
+# ==============================================================================
+
+services:
+  aegis-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    image: aegis-security/aegis-proxy:latest
+    container_name: aegis-guardrail-proxy
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DB_PATH=/app/data/aegis_saas.db
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/aegis_saas.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-ae915_prod_secret_key_change_me_immediately_in_env_file}
+      - JWT_ISSUER=Aegis Commercial Authority
+      - JWT_AUDIENCE=aegis-api
+      - REQUIRE_AUTH_FOR_API=true
+      - REQUIRE_AUTH_FOR_DASHBOARD=true
+      - BLOCK_ON_CRITICAL=true
+      - MAX_OVERHEAD_MS_SLA=20.0
+      - ENABLE_PII_REDACTION=true
+      - ENABLE_UNICODE_NORMALIZATION=true
+      - ENABLE_PDF_FORENSICS=true
+      - AEGIS_PUBLIC_KEY_HEX=${AEGIS_PUBLIC_KEY_HEX:-d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a}
+      - AEGIS_LICENSE_TOKEN=${AEGIS_LICENSE_TOKEN:-}
+      - UPSTREAM_LLM_URL=${UPSTREAM_LLM_URL:-https://api.openai.com/v1}
+      - UPSTREAM_API_KEY=${UPSTREAM_API_KEY:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+
+    volumes:
+      - aegis-data:/app/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request, sys; sys.exit(0 if urllib.request.urlopen(\"http://localhost:8000/health\", timeout=2).getcode() == 200 else 1)'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  aegis-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data
