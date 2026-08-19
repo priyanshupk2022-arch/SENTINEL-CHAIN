@@ -1,158 +1,146 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import {
   ReactFlow,
-  Controls,
   Background,
-  useNodesState,
-  useEdgesState,
-  Handle,
+  Controls,
+  Edge,
+  Node,
   Position,
-  BaseEdge,
-  getBezierPath,
-  EdgeProps
+  Handle,
+  MarkerType
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { motion } from 'framer-motion';
+import { Shield, Activity, Sparkles, Terminal, CheckCircle2, AlertOctagon, Wrench, ShieldCheck, Flame } from 'lucide-react';
 
-// --- Custom Nodes ---
+interface ExecutionDAGProps {
+  activeNodes: Record<string, string>;
+}
 
-const BaseNode = ({ title, children, statusColor = 'bg-cyan-500' }: any) => (
-  <div className="bg-[#0B0F17] border border-white/10 rounded-md shadow-card w-[220px] overflow-hidden font-sans text-sm">
-    <div className="bg-[#111827] px-3 py-2 border-b border-white/10 flex items-center justify-between">
-      <span className="text-zinc-300 font-medium tracking-tight uppercase text-xs">{title}</span>
-      <div className={`w-2 h-2 rounded-full ${statusColor} shadow-glow-cyan`} />
-    </div>
-    <div className="p-3 text-zinc-400 font-mono text-[11px] flex flex-col gap-1">
-      {children}
-    </div>
-    <Handle type="target" position={Position.Top} className="!bg-zinc-600 !w-2 !h-2 !border-none" />
-    <Handle type="source" position={Position.Bottom} className="!bg-zinc-600 !w-2 !h-2 !border-none" />
-  </div>
-);
+const nodeTypes = {
+  customStage: ({ data }: any) => {
+    const status = data.status || 'IDLE';
+    let borderColor = 'border-slate-800';
+    let bgColor = 'bg-[#0D131F]';
+    let textColor = 'text-slate-400';
+    let pulse = false;
 
-const SourceNode = ({ data }: any) => (
-  <BaseNode title="1. Source" statusColor="bg-emerald-400">
-    <div>Target: {data.target || 'r/SaaS'}</div>
-    <div>Proxy: Bright Data ASN</div>
-  </BaseNode>
-);
+    if (status === 'RUNNING' || status === 'EVIDENCE_COLLECTING' || status === 'DIAGNOSING' || status === 'HEALING' || status === 'APPROVING') {
+      borderColor = 'border-sky-500 shadow-lg shadow-sky-500/20';
+      bgColor = 'bg-sky-950/40';
+      textColor = 'text-sky-300';
+      pulse = true;
+    } else if (status === 'HEALTHY' || status === 'VALIDATED' || status === 'APPROVED' || status === 'EVIDENCE_COLLECTED' || status === 'DIAGNOSED') {
+      borderColor = 'border-emerald-500/70 shadow-sm shadow-emerald-500/10';
+      bgColor = 'bg-emerald-950/30';
+      textColor = 'text-emerald-300';
+    } else if (status === 'BROKEN' || status === 'FAILED' || status === 'REJECTED') {
+      borderColor = 'border-rose-500 shadow-lg shadow-rose-500/20';
+      bgColor = 'bg-rose-950/40';
+      textColor = 'text-rose-300';
+      pulse = true;
+    }
 
-const IngestNode = ({ data }: any) => (
-  <BaseNode title="2. Ingestion" statusColor="bg-cyan-400">
-    <div>CDP Stream: Active</div>
-    <div>CAPTCHA: Bypassed</div>
-  </BaseNode>
-);
+    return (
+      <div className={`px-4 py-3 rounded-lg border ${borderColor} ${bgColor} min-w-[170px] text-center transition-all duration-300 relative`}>
+        <Handle type="target" position={Position.Left} className="!bg-slate-600 !w-2 !h-2" />
+        
+        <div className="flex items-center justify-center gap-2 mb-1">
+          {data.icon && <data.icon className={`w-3.5 h-3.5 ${textColor}`} />}
+          <span className="font-mono text-xs font-bold text-slate-100 tracking-wide">
+            {data.label}
+          </span>
+        </div>
 
-const DetectionNode = ({ data }: any) => (
-  <BaseNode title="3. Detection" statusColor={data.hasError ? 'bg-amber-400' : 'bg-emerald-400'}>
-    <div>Hash Validator: {data.hasError ? 'MISMATCH' : 'MATCH'}</div>
-  </BaseNode>
-);
+        <div className="flex items-center justify-center gap-1.5 mt-1">
+          {pulse && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />}
+          <span className={`text-[10px] font-mono font-semibold uppercase ${textColor}`}>
+            {status}
+          </span>
+        </div>
 
-const HealerNode = ({ data }: any) => (
-  <BaseNode title="4. Auto-Healer" statusColor={data.active ? 'bg-amber-400' : 'bg-zinc-600'}>
-    <div>Status: {data.active ? 'T2 Escalation' : 'Standby'}</div>
-    <div>Algorithm: Spatial IoU</div>
-  </BaseNode>
-);
-
-const OutputNode = ({ data }: any) => (
-  <BaseNode title="5. Output" statusColor="bg-indigo-400">
-    <div>Schema: Validated</div>
-    <div className="text-emerald-400 font-bold mt-1">WTP: {data.wtp || 'Analyzing...'}</div>
-  </BaseNode>
-);
-
-// --- Custom Edge ---
-const AnimatedEdge = ({
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  style = {},
-  markerEnd,
-  data
-}: EdgeProps) => {
-  const [edgePath] = getBezierPath({
-    sourceX,
-    sourceY,
-    sourcePosition,
-    targetPosition,
-    targetX,
-    targetY,
-  });
-
-  const isHealing = data?.isHealing;
-  const isError = data?.isError;
-
-  let strokeColor = 'rgba(6, 182, 212, 0.5)'; // Cyan
-  if (isHealing) strokeColor = 'rgba(245, 158, 11, 0.8)'; // Amber
-  if (isError) strokeColor = 'rgba(239, 68, 68, 0.8)'; // Red
-
-  return (
-    <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={{ ...style, strokeWidth: 2, stroke: 'rgba(255,255,255,0.1)' }} />
-      <motion.path
-        d={edgePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth={3}
-        strokeDasharray="5 10"
-        initial={{ strokeDashoffset: 20 }}
-        animate={{ strokeDashoffset: 0 }}
-        transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-      />
-    </>
-  );
+        <Handle type="source" position={Position.Right} className="!bg-slate-600 !w-2 !h-2" />
+      </div>
+    );
+  }
 };
 
-const initialNodes = [
-  { id: '1', type: 'source', position: { x: 50, y: 50 }, data: { target: 'r/SaaS' } },
-  { id: '2', type: 'ingest', position: { x: 50, y: 180 }, data: {} },
-  { id: '3', type: 'detection', position: { x: 50, y: 310 }, data: { hasError: false } },
-  { id: '4', type: 'healer', position: { x: 50, y: 440 }, data: { active: false } },
-  { id: '5', type: 'output', position: { x: 50, y: 570 }, data: { wtp: '$1,200/mo' } },
-];
+export function ExecutionDAG({ activeNodes }: ExecutionDAGProps) {
+  const nodes: Node[] = useMemo(() => [
+    {
+      id: 'runner',
+      type: 'customStage',
+      position: { x: 30, y: 120 },
+      data: { label: '1. Runner (CLI)', icon: Terminal, status: activeNodes['runner'] || 'IDLE' }
+    },
+    {
+      id: 'detector',
+      type: 'customStage',
+      position: { x: 240, y: 120 },
+      data: { label: '2. Failure Detector', icon: AlertOctagon, status: activeNodes['detector'] || 'IDLE' }
+    },
+    {
+      id: 'evidence',
+      type: 'customStage',
+      position: { x: 450, y: 40 },
+      data: { label: '3. AOM Harvester', icon: Activity, status: activeNodes['evidence'] || 'IDLE' }
+    },
+    {
+      id: 'diagnoser',
+      type: 'customStage',
+      position: { x: 660, y: 40 },
+      data: { label: '4. Gemini 3.1 Pro', icon: Sparkles, status: activeNodes['diagnoser'] || 'IDLE' }
+    },
+    {
+      id: 'validator',
+      type: 'customStage',
+      position: { x: 870, y: 40 },
+      data: { label: '5. Deterministic Gate', icon: Shield, status: activeNodes['validator'] || 'IDLE' }
+    },
+    {
+      id: 'healer',
+      type: 'customStage',
+      position: { x: 660, y: 200 },
+      data: { label: '6. bdata heal', icon: Wrench, status: activeNodes['healer'] || 'IDLE' }
+    },
+    {
+      id: 'approval',
+      type: 'customStage',
+      position: { x: 870, y: 200 },
+      data: { label: '7. bdata approve', icon: CheckCircle2, status: activeNodes['approval'] || 'IDLE' }
+    },
+    {
+      id: 'verifier',
+      type: 'customStage',
+      position: { x: 1080, y: 120 },
+      data: { label: '8. Health Verifier', icon: ShieldCheck, status: activeNodes['verifier'] || 'IDLE' }
+    }
+  ], [activeNodes]);
 
-const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2', type: 'animated', data: { isHealing: false } },
-  { id: 'e2-3', source: '2', target: '3', type: 'animated', data: { isHealing: false } },
-  { id: 'e3-4', source: '3', target: '4', type: 'animated', data: { isHealing: false } },
-  { id: 'e4-5', source: '4', target: '5', type: 'animated', data: { isHealing: false } },
-];
-
-export function ExecutionDAG() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  const nodeTypes = useMemo(() => ({
-    source: SourceNode,
-    ingest: IngestNode,
-    detection: DetectionNode,
-    healer: HealerNode,
-    output: OutputNode
-  }), []);
-
-  const edgeTypes = useMemo(() => ({
-    animated: AnimatedEdge
-  }), []);
+  const edges: Edge[] = useMemo(() => [
+    { id: 'e1-2', source: 'runner', target: 'detector', animated: true, style: { stroke: '#38bdf8' } },
+    { id: 'e2-3', source: 'detector', target: 'evidence', animated: true, style: { stroke: '#f59e0b' } },
+    { id: 'e3-4', source: 'evidence', target: 'diagnoser', animated: true, style: { stroke: '#818cf8' } },
+    { id: 'e4-5', source: 'diagnoser', target: 'validator', animated: true, style: { stroke: '#a855f7' } },
+    { id: 'e5-6', source: 'validator', target: 'healer', animated: true, style: { stroke: '#38bdf8' } },
+    { id: 'e6-7', source: 'healer', target: 'approval', animated: true, style: { stroke: '#38bdf8' } },
+    { id: 'e7-8', source: 'approval', target: 'verifier', animated: true, style: { stroke: '#10b981' } },
+    { id: 'e2-8', source: 'detector', target: 'verifier', style: { stroke: '#10b981', strokeDasharray: '4,4' } }
+  ], []);
 
   return (
-    <div className="w-full h-full bg-void">
+    <div className="w-full h-full min-h-[360px] bg-[#090D16] relative rounded-lg border border-slate-800 overflow-hidden">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
         fitView
-        proOptions={{ hideAttribution: true }}
+        fitViewOptions={{ padding: 0.15 }}
+        attributionPosition="bottom-left"
       >
-        <Background color="rgba(255,255,255,0.05)" gap={16} />
+        <Background color="#1e293b" gap={16} size={1} />
+        <Controls className="!bg-slate-900 !border-slate-800 !text-slate-300" />
       </ReactFlow>
     </div>
   );

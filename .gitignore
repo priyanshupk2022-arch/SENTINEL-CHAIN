@@ -48,3 +48,11 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Databases
+data/*.db
+data/*.db-wal
+data/*.db-shm
+*.db
+*.db-wal
+*.db-shm

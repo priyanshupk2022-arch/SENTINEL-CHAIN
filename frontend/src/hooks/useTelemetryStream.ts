@@ -1,64 +1,78 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface TelemetryFrame {
-  event: string;
-  data: any;
-  timestamp: string;
+  id?: number;
+  node_id: string;
+  status: string;
+  message: string;
+  payload?: any;
+  timestamp?: string;
 }
 
-export function useTelemetryStream(url: string = '/api/stream/telemetry') {
+export function useTelemetryStream() {
   const [frames, setFrames] = useState<TelemetryFrame[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<'LIVE' | 'MOCK' | 'OFFLINE'>('OFFLINE');
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const backoffRef = useRef(1000); // Start with 1s
+  const [latestFrame, setLatestFrame] = useState<TelemetryFrame | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'LIVE' | 'OFFLINE' | 'CONNECTING'>('CONNECTING');
+  const [activeNodes, setActiveNodes] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    function connect() {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: any = null;
 
-      const es = new EventSource(url);
-      eventSourceRef.current = es;
+    const connectSSE = () => {
+      try {
+        const url = process.env.NEXT_PUBLIC_API_URL 
+          ? `${process.env.NEXT_PUBLIC_API_URL}/api/telemetry/stream` 
+          : 'http://localhost:8000/api/telemetry/stream';
 
-      es.onopen = () => {
-        setConnectionStatus(url.includes('mock') ? 'MOCK' : 'LIVE');
-        backoffRef.current = 1000; // Reset backoff on successful connect
-      };
+        eventSource = new EventSource(url);
 
-      es.onmessage = (event) => {
-        try {
-          const frame: TelemetryFrame = JSON.parse(event.data);
-          setFrames((prev) => [...prev.slice(-99), frame]); // Keep last 100 frames
-        } catch (error) {
-          console.error('Failed to parse telemetry frame', error);
-        }
-      };
+        eventSource.onopen = () => {
+          setConnectionStatus('LIVE');
+        };
 
-      es.onerror = () => {
+        eventSource.onmessage = (event) => {
+          try {
+            if (event.data.startsWith('{')) {
+              const data: TelemetryFrame = JSON.parse(event.data);
+              setLatestFrame(data);
+              setFrames((prev) => [data, ...prev.slice(0, 100)]);
+
+              if (data.node_id) {
+                setActiveNodes((prev) => ({
+                  ...prev,
+                  [data.node_id]: data.status
+                }));
+              }
+            }
+          } catch (err) {
+            console.error('Error parsing SSE event:', err);
+          }
+        };
+
+        eventSource.onerror = () => {
+          setConnectionStatus('OFFLINE');
+          eventSource?.close();
+          reconnectTimeout = setTimeout(connectSSE, 3000);
+        };
+      } catch (err) {
         setConnectionStatus('OFFLINE');
-        es.close();
-        
-        // Exponential backoff
-        const nextBackoff = Math.min(backoffRef.current * 2, 30000);
-        backoffRef.current = nextBackoff;
-        
-        reconnectTimeoutRef.current = setTimeout(connect, nextBackoff);
-      };
-    }
-
-    connect();
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeout = setTimeout(connectSSE, 3000);
       }
     };
-  }, [url]);
 
-  return { frames, connectionStatus };
+    connectSSE();
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    };
+  }, []);
+
+  return {
+    frames,
+    latestFrame,
+    connectionStatus,
+    activeNodes
+  };
 }

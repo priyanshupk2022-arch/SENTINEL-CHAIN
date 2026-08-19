@@ -1,31 +1,70 @@
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-import asyncio
+from backend.app.config import get_settings
+from backend.app.storage.db import DatabaseManager
+from backend.app.engine.queue_manager import ScraperQueueManager
+from backend.app.api.routes_proxy import router as proxy_router
+from backend.app.api.routes_chaos import router as chaos_router
+from backend.app.api.routes_scrapers import router as scraper_router
+from backend.app.api.routes_threats import router as threats_router
+from backend.app.api.routes_telemetry import router as telemetry_router
 
-from backend.app.integrations.scraper_studio import router as scraper_studio_router
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+logger = logging.getLogger("sentinel.main")
 
-app = FastAPI(title="RADAR-X Backend")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    settings = get_settings()
+    logger.info("Initializing Sentinel-Chain Backend & Storage...")
+    db = DatabaseManager(settings.DATABASE_PATH)
+    await db.initialize()
+
+    queue_mgr = ScraperQueueManager()
+    await queue_mgr.start()
+    logger.info("Sentinel-Chain Backend is operational.")
+    yield
+    logger.info("Shutting down Sentinel-Chain background workers...")
+    await queue_mgr.stop()
+    await db.close()
+
+app = FastAPI(
+    title="SENTINEL-CHAIN: Autonomous Threat Intelligence Self-Healing Engine",
+    description="Autonomous AI-driven self-healing proxy pipeline for Bright Data Scraper Studio",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(scraper_studio_router)
+# Mount Routers
+app.include_router(proxy_router)
+app.include_router(chaos_router)
+app.include_router(scraper_router)
+app.include_router(threats_router)
+app.include_router(telemetry_router)
 
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
+    settings = get_settings()
+    return {
+        "status": "healthy",
+        "service": "SENTINEL-CHAIN",
+        "version": "1.0.0",
+        "environment": settings.ENVIRONMENT
+    }
 
-@app.get("/api/stream/telemetry")
-async def stream_telemetry():
-    async def event_generator():
-        while True:
-            # Yield a keep-alive comment or empty frame for now
-            yield "data: {}\n\n"
-            await asyncio.sleep(1)
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+if __name__ == "__main__":
+    import uvicorn
+    settings = get_settings()
+    uvicorn.run("backend.app.main:app", host=settings.HOST, port=settings.PORT, reload=True)
