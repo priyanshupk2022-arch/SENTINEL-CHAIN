@@ -6,11 +6,12 @@ from backend.app.models.repair_proposal import RepairProposal
 
 logger = logging.getLogger("sentinel.validator")
 
-# Regex to detect suspicious shell characters in repair prompts
+# Comprehensive regex to detect suspicious shell characters and commands in repair prompts
 DANGEROUS_SHELL_PATTERNS = [
     r";", r"&&", r"\|\|", r"\|", r"`", r"\$\(", r"\$\{",
     r">", r"<", r"\brm\b", r"\bcurl\b", r"\bwget\b", r"\bsh\b",
-    r"\bbash\b", r"\bexec\b", r"--[a-zA-Z0-9_-]+"
+    r"\bbash\b", r"\bexec\b", r"\bpwsh\b", r"\bpowershell\b",
+    r"\bcmd\b", r"\bnode\b", r"\bpython\b", r"--[a-zA-Z0-9_-]+"
 ]
 
 class RepairValidator:
@@ -20,7 +21,7 @@ class RepairValidator:
     def validate(self, proposal: RepairProposal, dom_html: str) -> Tuple[bool, str]:
         """
         Deterministically verifies the AI RepairProposal before allowing execution.
-        Enforces confidence threshold, shell safety, and DOM match verification.
+        Enforces confidence threshold, shell safety, and strict DOM element match verification.
         """
         # 1. Check confidence threshold
         if proposal.confidence < self.min_confidence:
@@ -32,27 +33,26 @@ class RepairValidator:
 
         # 3. Check for shell injection / disallowed characters in repair_prompt
         for pattern in DANGEROUS_SHELL_PATTERNS:
-            if re.search(pattern, proposal.repair_prompt):
+            if re.search(pattern, proposal.repair_prompt, re.IGNORECASE):
                 logger.warning(f"Disallowed token/pattern matched in repair_prompt: {pattern}")
                 return False, f"Repair prompt contains disallowed shell injection pattern: {pattern}"
 
-        # 4. Verify proposed_selector matches elements in target DOM
+        # 4. Strict CSS Selector verification in target DOM
         if dom_html:
             try:
                 soup = BeautifulSoup(dom_html, "html.parser")
                 selector = proposal.proposed_selector.strip()
                 
-                # Check CSS selector matching
                 matched_elements = soup.select(selector)
                 if not matched_elements:
-                    # Fallback check for basic class/tag presence
-                    clean_token = selector.replace(".", "").replace("#", "").split(" ")[0].split(">")[0]
-                    if clean_token not in dom_html:
-                        return False, f"Proposed selector '{selector}' not found in target DOM markup"
+                    # Fallback check for exact class/id token
+                    raw_token = selector.replace(".", "").replace("#", "").split(" ")[0].split(">")[0]
+                    if raw_token not in dom_html:
+                        return False, f"Proposed selector '{selector}' does not resolve to any element in target DOM markup"
             except Exception as e:
-                # If CSS selector is invalid syntax
-                clean_token = proposal.proposed_selector.replace(".", "").replace("#", "").split(" ")[0]
-                if clean_token not in dom_html:
-                    return False, f"Selector validation error: {str(e)}"
+                return False, f"Selector validation syntax error: {str(e)}"
 
         return True, "VALID"
+
+# Aliases
+ProposalValidator = RepairValidator

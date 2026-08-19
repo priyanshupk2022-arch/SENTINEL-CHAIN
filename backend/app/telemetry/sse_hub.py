@@ -15,8 +15,8 @@ class SSEHub:
             cls._instance._subscribers: Set[asyncio.Queue] = set()
         return cls._instance
 
-    def subscribe(self) -> asyncio.Queue:
-        q: asyncio.Queue = asyncio.Queue()
+    def subscribe(self, max_buffer: int = 100) -> asyncio.Queue:
+        q: asyncio.Queue = asyncio.Queue(maxsize=max_buffer)
         self._subscribers.add(q)
         logger.info(f"New SSE client subscribed. Total active: {len(self._subscribers)}")
         return q
@@ -28,7 +28,6 @@ class SSEHub:
 
     async def broadcast(self, event: TelemetryEvent) -> None:
         payload_data = event.model_dump()
-        # Format datetime as ISO string
         if "timestamp" in payload_data and hasattr(payload_data["timestamp"], "isoformat"):
             payload_data["timestamp"] = payload_data["timestamp"].isoformat()
         else:
@@ -37,7 +36,13 @@ class SSEHub:
         msg_str = f"data: {json.dumps(payload_data)}\n\n"
         for q in list(self._subscribers):
             try:
-                await q.put(msg_str)
+                # If queue is full, drop oldest item to maintain sliding window
+                if q.full():
+                    try:
+                        q.get_nowait()
+                    except asyncio.QueueEmpty:
+                        pass
+                q.put_nowait(msg_str)
             except Exception as e:
                 logger.warning(f"Failed to push message to SSE subscriber: {e}")
 

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import re
+import asyncio
 from typing import Optional, Dict, Any
 from backend.app.config import get_settings
 from backend.app.models.domain import EvidenceBundle
@@ -50,7 +51,7 @@ class GeminiAIDiagnoser:
 
     async def diagnose_and_propose(self, evidence: EvidenceBundle, target_field: str = "cve_id") -> RepairProposal:
         """
-        Calls Gemini 3.1 Pro / 3.7 Flash with the EvidenceBundle to produce a structured RepairProposal.
+        Calls Gemini with the EvidenceBundle to produce a structured RepairProposal.
         Includes a deterministic fallback if the API is offline or rate-limited.
         """
         user_content = f"""
@@ -66,16 +67,20 @@ Pruned Semantic DOM:
 """
         if self.client:
             try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=[DIAGNOSTIC_SYSTEM_PROMPT, user_content],
+                response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        self.client.models.generate_content,
+                        model=self.model_name,
+                        contents=[DIAGNOSTIC_SYSTEM_PROMPT, user_content],
+                    ),
+                    timeout=5.0
                 )
                 text = response.text or ""
                 proposal = self._parse_json_response(text, target_field)
                 if proposal:
                     return proposal
             except Exception as e:
-                logger.error(f"Gemini API diagnosis call failed: {e}")
+                logger.error(f"Gemini API diagnosis call failed or timed out: {e}")
 
         # Deterministic Heuristic Fallback
         return self._heuristic_fallback(evidence, target_field)
@@ -99,11 +104,11 @@ Pruned Semantic DOM:
         if "exploit-card" in dom or "threat-card" in dom or "threat-badge-id" in dom:
             selector = ".threat-badge-id" if "threat-badge-id" in dom else (".badge" if "class='badge'" in dom or "class=\"badge\"" in dom else ".exploit-card")
             return RepairProposal(
-                diagnosis="Target redesigned from HTML table into card feed layout",
+                diagnosis="Target table converted to card grid with .exploit-card elements",
                 target_field=target_field,
-                evidence=f"Found card elements with {selector}",
+                evidence="Found .exploit-card structure in DOM",
                 proposed_selector=selector,
-                repair_prompt=f"Extract CVE identifier from {selector} inside each card",
+                repair_prompt=f"Extract CVE identifier from article cards with selector {selector}",
                 confidence=0.94,
                 expected_output="CVE-2026-4401"
             )

@@ -7,8 +7,9 @@ from backend.app.config import get_settings
 from backend.app.engine.queue_manager import ScraperQueueManager
 from backend.app.chaos.chaos_proxy import ChaosMode
 from backend.app.engine.cli_runner import CliExecutionResult
-from backend.app.models.domain import ScraperJobState, EvidenceBundle
+from backend.app.models.domain import EvidenceBundle
 from backend.app.models.repair_proposal import RepairProposal
+from backend.app.api.routes_scrapers import orchestrator
 
 @pytest.mark.asyncio
 async def test_full_e2e_self_healing_lifecycle():
@@ -38,12 +39,12 @@ async def test_full_e2e_self_healing_lifecycle():
             assert "vulnerability-badge" in res_target.text
 
             # 4. Trigger Scraper cycle with auto_heal
-            with patch("backend.app.api.routes_scrapers.orchestrator.cli_runner.run_scraper", new_callable=AsyncMock) as mock_run, \
-                 patch("backend.app.api.routes_scrapers.orchestrator.cli_runner.heal_scraper", new_callable=AsyncMock) as mock_heal, \
-                 patch("backend.app.api.routes_scrapers.orchestrator.cli_runner.approve_scraper", new_callable=AsyncMock) as mock_approve, \
-                 patch("backend.app.api.routes_scrapers.orchestrator.evidence_collector.collect_from_url", new_callable=AsyncMock) as mock_evidence:
+            with patch.object(orchestrator.cli_runner, "run_scraper", new_callable=AsyncMock) as mock_run, \
+                 patch.object(orchestrator.cli_runner, "heal_scraper", new_callable=AsyncMock) as mock_heal, \
+                 patch.object(orchestrator.cli_runner, "approve_scraper", new_callable=AsyncMock) as mock_approve, \
+                 patch.object(orchestrator.evidence_collector, "collect_from_url", new_callable=AsyncMock) as mock_evidence, \
+                 patch.object(orchestrator.diagnoser, "diagnose_and_propose", new_callable=AsyncMock) as mock_diag:
 
-                # Mock first run failing (empty) and second run returning extracted CVE records
                 mock_run.side_effect = [
                     CliExecutionResult(
                         command=["bdata", "run"],
@@ -88,6 +89,16 @@ async def test_full_e2e_self_healing_lifecycle():
                     pruned_dom="<table class='threat-data-grid'><tr><td class='vulnerability-badge'>CVE-2026-4401</td></tr></table>",
                     aom_tree="[table] -> [td.vulnerability-badge] -> 'CVE-2026-4401'",
                     screenshot_b64=None
+                )
+
+                mock_diag.return_value = RepairProposal(
+                    diagnosis="CSS class .cve-id was renamed to .vulnerability-badge in threat table",
+                    target_field="cve_id",
+                    evidence="Found .vulnerability-badge elements inside table",
+                    proposed_selector=".vulnerability-badge",
+                    repair_prompt="Extract CVE identifier from .vulnerability-badge column",
+                    confidence=0.95,
+                    expected_output="CVE-2026-4401"
                 )
 
                 # Trigger API
