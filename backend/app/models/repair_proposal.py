@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
+from typing import Optional
 import re
 
 class RepairProposal(BaseModel):
@@ -9,6 +10,8 @@ class RepairProposal(BaseModel):
     repair_prompt: str = Field(..., description="Natural language prompt passed to Bright Data CLI heal command")
     confidence: float = Field(..., description="Confidence score between 0.0 and 1.0 (must be >= 0.8)")
     expected_output: str = Field(..., description="Expected sample value from the target field")
+    source_type: str = Field(default="AI_GENERATED", description="Source of diagnosis: AI_GENERATED or HEURISTIC_FALLBACK")
+    model_used: Optional[str] = Field(default=None, description="Model identifier used for diagnosis")
 
     @field_validator("confidence")
     @classmethod

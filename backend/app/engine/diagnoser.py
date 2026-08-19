@@ -36,16 +36,17 @@ Your task:
 """
 
 class GeminiAIDiagnoser:
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "gemini-2.5-flash"):
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
         settings = get_settings()
         self.api_key = api_key or settings.GEMINI_API_KEY
-        self.model_name = model_name
+        self.model_name = model_name or settings.GEMINI_MODEL
         self.client = None
-        # Only initialize Google GenAI SDK if key is valid format (AIzaSy...)
+        # Only initialize Google GenAI SDK if key is valid AI Studio format (AIzaSy...)
         if self.api_key and self.api_key.startswith("AIza"):
             try:
                 from google import genai
                 self.client = genai.Client(api_key=self.api_key)
+                logger.info(f"Initialized Google GenAI SDK client with model: {self.model_name}")
             except Exception as e:
                 logger.warning(f"Could not initialize Google GenAI client: {e}")
 
@@ -78,6 +79,8 @@ Pruned Semantic DOM:
                 text = response.text or ""
                 proposal = self._parse_json_response(text, target_field)
                 if proposal:
+                    proposal.source_type = "AI_GENERATED"
+                    proposal.model_used = self.model_name
                     return proposal
             except Exception as e:
                 logger.error(f"Gemini API diagnosis call failed or timed out: {e}")
@@ -110,7 +113,9 @@ Pruned Semantic DOM:
                 proposed_selector=selector,
                 repair_prompt=f"Extract CVE identifier from article cards with selector {selector}",
                 confidence=0.94,
-                expected_output="CVE-2026-4401"
+                expected_output="CVE-2026-4401",
+                source_type="HEURISTIC_FALLBACK",
+                model_used="deterministic-rule-engine"
             )
         # Check for class renaming mutation
         elif "vulnerability-badge" in dom or "vulnerability-item-row" in dom:
@@ -121,7 +126,9 @@ Pruned Semantic DOM:
                 proposed_selector=".vulnerability-badge",
                 repair_prompt="Extract CVE identifier from .vulnerability-badge column",
                 confidence=0.95,
-                expected_output="CVE-2026-4401"
+                expected_output="CVE-2026-4401",
+                source_type="HEURISTIC_FALLBACK",
+                model_used="deterministic-rule-engine"
             )
         # Check for deep nesting mutation
         elif "cve-ref-label" in dom:
@@ -132,7 +139,9 @@ Pruned Semantic DOM:
                 proposed_selector=".cve-ref-label",
                 repair_prompt="Extract CVE identifier from .cve-ref-label within code container",
                 confidence=0.91,
-                expected_output="CVE-2026-4401"
+                expected_output="CVE-2026-4401",
+                source_type="HEURISTIC_FALLBACK",
+                model_used="deterministic-rule-engine"
             )
         else:
             return RepairProposal(
@@ -142,7 +151,9 @@ Pruned Semantic DOM:
                 proposed_selector=".cve-id",
                 repair_prompt="Extract CVE identifier from table first column .cve-id",
                 confidence=0.88,
-                expected_output="CVE-2026-4401"
+                expected_output="CVE-2026-4401",
+                source_type="HEURISTIC_FALLBACK",
+                model_used="deterministic-rule-engine"
             )
 
 # Aliases
