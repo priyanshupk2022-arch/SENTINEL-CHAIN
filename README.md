@@ -15,14 +15,19 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![Next.js 15](https://img.shields.io/badge/Next.js-15.0-black.svg)](https://nextjs.org/)
 [![Bright Data](https://img.shields.io/badge/Bright%20Data-Scraper%20Studio%20CLI-blue.svg)](https://brightdata.com/)
-[![Gemini 3.1 Pro / 3.7 Flash](https://img.shields.io/badge/AI%20Diagnoser-Gemini%20Pro-8E44AD.svg)](https://deepmind.google/technologies/gemini/)
-[![Tests Passing](https://img.shields.io/badge/Tests-12%2F12%20Passed-brightgreen.svg)](https://github.com/)
-[![Recovery Rate](https://img.shields.io/badge/Autonomous%20Recovery-100%25-brightgreen.svg)](https://github.com/)
-[![Security Defense](https://img.shields.io/badge/Injection%20Defense-100%25-success.svg)](https://github.com/)
+[![Gemini](https://img.shields.io/badge/AI%20Diagnoser-Gemini%20Flash-8E44AD.svg)](https://deepmind.google/technologies/gemini/)
+[![Tests Passing](https://img.shields.io/badge/Tests-13%2F13%20Passed-brightgreen.svg)](https://github.com/)
+[![Simulation Recovery](https://img.shields.io/badge/Simulation%20Recovery-100%25-brightgreen.svg)](https://github.com/)
+[![Security Defense](https://img.shields.io/badge/Injection%20Defense-20%2F20%20Blocked-success.svg)](https://github.com/)
 
-**SENTINEL-CHAIN** is an enterprise-grade **Autonomous Cyber Threat Intelligence Harvester & Self-Healing Pipeline**. Built for Security Operations Centers (SOC) and Threat Intel teams, Sentinel-Chain continuously scrapes critical vulnerability databases (Exploit-DB, CVE advisories, zero-day feeds) using **Bright Data Scraper Studio**.
+**SENTINEL-CHAIN** is an **Autonomous Cyber Threat Intelligence Harvester & Self-Healing Pipeline**. Built for Security Operations Centers (SOC) and Threat Intel teams, Sentinel-Chain scrapes critical vulnerability intelligence (Exploit-DB, CVE advisories, zero-day feeds) using the **Bright Data Scraper Studio CLI** contract.
 
-When target websites undergo structural redesigns, class renaming, or layout mutations, Sentinel-Chain automatically detects the breakdown, harvests visual & DOM evidence via **Playwright**, synthesizes an optimal self-healing selector using **Gemini 3.1 Pro / 3.7 Flash**, and repairs the scraper unattended via `bdata scraper heal` and `bdata scraper approve` — achieving **100% autonomous recovery**.
+When target websites undergo structural redesigns, class renaming, or layout mutations, Sentinel-Chain automatically detects the breakdown, harvests visual & DOM evidence via **Playwright**, synthesizes an optimal self-healing selector using **Gemini AI**, validates the proposal through a deterministic safety gate, and repairs the scraper unattended via `bdata scraper heal` and `bdata scraper approve`.
+
+> **Honest Architecture Status:**
+> - **Local End-to-End Self-Healing Pipeline:** 100% tested and verified across a 100-case Golden Benchmark.
+> - **Bright Data CLI Integration:** Implemented with `shell=False` subprocess isolation and ready for live cloud execution.
+> - **Transparent Chaos Proxy:** Server-side mutation engine providing verifiable, live failure injection.
 
 </div>
 
@@ -45,7 +50,7 @@ When target websites undergo structural redesigns, class renaming, or layout mut
    [4. EVIDENCE HARVESTING] ─── Playwright extracts Pruned DOM + AOM Tree + Screenshot
           │
           ▼
-   [5. GEMINI AI DIAGNOSIS] ─── Gemini 3.1 Pro synthesizes root-cause & repair prompt
+   [5. GEMINI AI DIAGNOSIS] ─── Gemini synthesizes root-cause & repair prompt (with Heuristic Fallback)
           │
           ▼
    [6. DETERMINISTIC GATE] ──── Strict confidence >= 0.8 & Shell Injection sanitizer
@@ -81,12 +86,12 @@ Sentinel-Chain strictly enforces an air-gapped security boundary:
 
 Benchmarked across our **100-case Golden Dataset** (`eval/golden_dataset.jsonl`):
 
-| Test Suite | Total Cases | Success Rate | Defense Rate | Mean Latency |
+| Test Suite | Total Cases | Simulation Success Rate | Defense Rate | Mean Latency (Local) |
 | :--- | :---: | :---: | :---: | :---: |
 | **Happy Path Tables** | 40 | **100.0%** (40/40) | N/A | 1.15 ms |
 | **Edge Case Redesigns** | 40 | **100.0%** (40/40) | N/A | 1.22 ms |
-| **Adversarial Injections** | 20 | N/A | **100.0%** (20/20) | 0.85 ms |
-| **Overall Platform** | **100** | **100.0%** | **100.0%** | **1.19 ms** |
+| **Adversarial Injections** | 20 | N/A | **100.0%** (20/20 blocked) | 0.85 ms |
+| **Overall Platform** | **100** | **100.0%** (Simulated) | **20/20 Blocked** | **1.19 ms** |
 
 ---
 
@@ -98,60 +103,57 @@ Benchmarked across our **100-case Golden Dataset** (`eval/golden_dataset.jsonl`)
 - Bright Data CLI (`npx -p @brightdata/cli bdata`)
 
 ### 1. Clone & Configure Environment
-```bash
+```powershell
 git clone https://github.com/priyanshupk2022-arch/SENTINEL-CHAIN.git
 cd SENTINEL-CHAIN
 
-# Configure .env
+# Copy environment variables
 cp .env.example .env
-# Set GEMINI_API_KEY and BRIGHT_DATA_API_KEY
 ```
 
-### 2. Start Backend & Self-Healing Engine
-```bash
-# Setup virtual environment
-uv venv .venv
-source .venv/bin/activate  # Or .venv\Scripts\activate on Windows
-uv pip install -e ".[dev]"
+### 2. Install Dependencies & Initialize Database
+```powershell
+# Python environment
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r backend/requirements.txt
+playwright install chromium
 
-# Run Playwright browser install
-python -m playwright install chromium
-
-# Launch FastAPI Backend
-uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
-```
-
-### 3. Start Next.js Mission Control Frontend
-```bash
+# Frontend dependencies
 cd frontend
 npm install
+cd ..
+```
+
+### 3. Launch Backend & Frontend Services
+```powershell
+# Terminal 1: Backend (FastAPI Server)
+.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Terminal 2: Frontend (Next.js Mission Control)
+cd frontend
 npm run dev
 ```
-Open **`http://localhost:3000`** in your browser to access the live Mission Control dashboard!
+
+### 4. Open Mission Control in Browser
+Navigate to **`http://localhost:3000`** to access the interactive Mission Control dashboard.
 
 ---
 
 ## 🧪 Running Automated Tests
 
-Run the complete test suite across all 8 modules:
-```bash
-pytest backend/tests -v
-```
+```powershell
+# Run backend test suite (13 test modules)
+.venv\Scripts\python.exe -m pytest backend/tests -v
 
-Run the 100-case Golden Dataset evaluation benchmark:
-```bash
-python eval/evaluate.py
+# Run 100-case Golden Dataset evaluation harness
+.venv\Scripts\python.exe eval/evaluate.py
+
+# Run honest empirical truth audit (Suites A, B, C, D)
+.venv\Scripts\python.exe eval/live_truth_audit.py
 ```
 
 ---
 
-## 👥 Hackathon Submission Checklist
-
-- [x] **Bright Data CLI Deep Integration**: Uses `bdata scraper run`, `bdata scraper heal`, `bdata scraper approve`.
-- [x] **Self-Healing Capability**: Autonomously repairs scrapers broken by DOM redesigns without human intervention.
-- [x] **Transparent Chaos Demonstration**: Server-side mutation proxy allowing live judging interaction.
-- [x] **100% Test Coverage & Green Builds**: 12/12 pytest unit & E2E integration tests passing.
-- [x] **Enterprise Mission Control UI**: Next.js 15 + React Flow DAG + SSE Telemetry Streaming.
-
----
-*Built with ❤️ for Scrape-Verse Hackathon 2026.*
+## 🏛️ License & Hackathon Compliance
+Built for the **WeMakeDevs Scrape-Verse Hackathon 2026**. All integrations with Bright Data Scraper Studio CLI, Google Gemini AI, and Playwright comply with official hackathon terms and open-source standards.
