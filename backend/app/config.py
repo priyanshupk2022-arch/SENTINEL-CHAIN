@@ -7,7 +7,7 @@ load_dotenv()
 class Settings:
     def __init__(self):
         self.GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-        self.GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
         self.BRIGHT_DATA_API_KEY: str = os.getenv("BRIGHT_DATA_API_KEY", "")
         self.DATABASE_PATH: str = os.getenv("DATABASE_PATH", os.path.join(os.getcwd(), "data", "sentinel_chain.db"))
         self.PORT: int = int(os.getenv("PORT", "8000"))
