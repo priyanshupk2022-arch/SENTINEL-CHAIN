@@ -112,7 +112,7 @@ export default function MissionControlPage() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#070A10] text-slate-100 overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-[#080B11] text-slate-100 overflow-hidden font-sans">
       {/* Top HUD Navigation Bar */}
       <TopHUDBar
         connectionStatus={connectionStatus}
@@ -124,9 +124,9 @@ export default function MissionControlPage() {
       />
 
       {/* Main 3-Column Mission Control Grid */}
-      <main className="flex-1 grid grid-cols-[300px_1fr_360px] gap-3 p-3 overflow-hidden">
+      <main className="flex-1 grid grid-cols-[300px_1fr_360px] gap-4 p-4 overflow-hidden">
         {/* Left Column: Chaos Controls & Target Ingestion */}
-        <section className="flex flex-col gap-3 overflow-y-auto">
+        <section className="flex flex-col gap-4 overflow-y-auto">
           <ChaosPanel
             currentMode={chaosMode}
             onMutate={handleChaosMutate}
@@ -136,7 +136,7 @@ export default function MissionControlPage() {
         </section>
 
         {/* Center Column: Live React Flow DAG & Real-Time Threat Stream */}
-        <section className="flex flex-col gap-3 overflow-hidden">
+        <section className="flex flex-col gap-4 overflow-hidden">
           {/* Top Half: Execution DAG */}
           <div className="flex-[1.1] min-h-[300px] flex flex-col">
             <ExecutionDAG activeNodes={activeNodes} />

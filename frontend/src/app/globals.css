@@ -9,52 +9,77 @@
   }
   
   html, body {
-    background-color: #07090E !important;
+    background-color: #080B11 !important;
     color: #F8FAFC !important;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Custom Cyberpunk Mission Control Scrollbars */
+/* Subtle Shimmer Skeleton Loader */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Minimal Whisper Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0B0F17;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: rgba(255, 255, 255, 0.22);
 }
 
-/* React Flow Canvas Dark Theme Overrides */
+/* React Flow Canvas Dark Styling */
 .react-flow__pane {
-  background: #07090E !important;
+  background: #080B11 !important;
 }
 
 .react-flow__background {
-  background-color: #07090E !important;
+  background-color: #080B11 !important;
+}
+
+.react-flow__controls {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
 .react-flow__controls button {
-  background-color: #0B0F17 !important;
+  background-color: #0F131C !important;
   color: #94A3B8 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  transition: all 0.15s ease;
 }
 
 .react-flow__controls button:hover {
-  background-color: #1E293B !important;
-  color: #38BDF8 !important;
+  background-color: #151B27 !important;
+  color: #10B981 !important;
 }
 
 .react-flow__attribution {

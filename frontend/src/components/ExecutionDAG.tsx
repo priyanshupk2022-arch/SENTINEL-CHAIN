@@ -8,11 +8,10 @@ import {
   Edge,
   Node,
   Position,
-  Handle,
-  MarkerType
+  Handle
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Shield, Activity, Sparkles, Terminal, CheckCircle2, AlertOctagon, Wrench, ShieldCheck, Flame } from 'lucide-react';
+import { Shield, Activity, Sparkles, Terminal, CheckCircle2, AlertOctagon, Wrench, ShieldCheck } from 'lucide-react';
 
 interface ExecutionDAGProps {
   activeNodes: Record<string, string>;
@@ -21,46 +20,46 @@ interface ExecutionDAGProps {
 const nodeTypes = {
   customStage: ({ data }: any) => {
     const status = data.status || 'IDLE';
-    let borderColor = 'border-slate-800';
-    let bgColor = 'bg-[#0D131F]';
+    let borderColor = 'border-white/[0.08]';
+    let bgColor = 'bg-[#0F131C]';
     let textColor = 'text-slate-400';
     let pulse = false;
 
     if (status === 'RUNNING' || status === 'EVIDENCE_COLLECTING' || status === 'DIAGNOSING' || status === 'HEALING' || status === 'APPROVING') {
-      borderColor = 'border-sky-500 shadow-lg shadow-sky-500/20';
-      bgColor = 'bg-sky-950/40';
-      textColor = 'text-sky-300';
+      borderColor = 'border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.15)]';
+      bgColor = 'bg-[#151B27]';
+      textColor = 'text-emerald-300';
       pulse = true;
     } else if (status === 'HEALTHY' || status === 'VALIDATED' || status === 'APPROVED' || status === 'EVIDENCE_COLLECTED' || status === 'DIAGNOSED') {
-      borderColor = 'border-emerald-500/70 shadow-sm shadow-emerald-500/10';
-      bgColor = 'bg-emerald-950/30';
+      borderColor = 'border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.10)]';
+      bgColor = 'bg-emerald-950/20';
       textColor = 'text-emerald-300';
     } else if (status === 'BROKEN' || status === 'FAILED' || status === 'REJECTED') {
-      borderColor = 'border-rose-500 shadow-lg shadow-rose-500/20';
-      bgColor = 'bg-rose-950/40';
+      borderColor = 'border-rose-500/80 shadow-[0_0_20px_rgba(239,68,68,0.15)]';
+      bgColor = 'bg-rose-950/30';
       textColor = 'text-rose-300';
       pulse = true;
     }
 
     return (
-      <div className={`px-4 py-3 rounded-lg border ${borderColor} ${bgColor} min-w-[170px] text-center transition-all duration-300 relative`}>
-        <Handle type="target" position={Position.Left} className="!bg-slate-600 !w-2 !h-2" />
+      <div className={`px-4 py-3 rounded-[10px] border ${borderColor} ${bgColor} min-w-[170px] text-center transition-all duration-200 relative`}>
+        <Handle type="target" position={Position.Left} className="!bg-slate-500 !w-2 !h-2" />
         
         <div className="flex items-center justify-center gap-2 mb-1">
           {data.icon && <data.icon className={`w-3.5 h-3.5 ${textColor}`} />}
-          <span className="font-mono text-xs font-bold text-slate-100 tracking-wide">
+          <span className="font-mono text-xs font-semibold text-slate-100 tracking-wide">
             {data.label}
           </span>
         </div>
 
         <div className="flex items-center justify-center gap-1.5 mt-1">
-          {pulse && <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping" />}
-          <span className={`text-[10px] font-mono font-semibold uppercase ${textColor}`}>
+          {pulse && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />}
+          <span className={`text-[10px] font-mono font-medium uppercase ${textColor}`}>
             {status}
           </span>
         </div>
 
-        <Handle type="source" position={Position.Right} className="!bg-slate-600 !w-2 !h-2" />
+        <Handle type="source" position={Position.Right} className="!bg-slate-500 !w-2 !h-2" />
       </div>
     );
   }
@@ -90,7 +89,7 @@ export function ExecutionDAG({ activeNodes }: ExecutionDAGProps) {
       id: 'diagnoser',
       type: 'customStage',
       position: { x: 660, y: 40 },
-      data: { label: '4. Gemini 3.1 Pro', icon: Sparkles, status: activeNodes['diagnoser'] || 'IDLE' }
+      data: { label: '4. Gemini 3.7 Flash', icon: Sparkles, status: activeNodes['diagnoser'] || 'IDLE' }
     },
     {
       id: 'validator',
@@ -119,18 +118,18 @@ export function ExecutionDAG({ activeNodes }: ExecutionDAGProps) {
   ], [activeNodes]);
 
   const edges: Edge[] = useMemo(() => [
-    { id: 'e1-2', source: 'runner', target: 'detector', animated: true, style: { stroke: '#38bdf8' } },
+    { id: 'e1-2', source: 'runner', target: 'detector', animated: true, style: { stroke: '#94a3b8' } },
     { id: 'e2-3', source: 'detector', target: 'evidence', animated: true, style: { stroke: '#f59e0b' } },
-    { id: 'e3-4', source: 'evidence', target: 'diagnoser', animated: true, style: { stroke: '#818cf8' } },
-    { id: 'e4-5', source: 'diagnoser', target: 'validator', animated: true, style: { stroke: '#a855f7' } },
-    { id: 'e5-6', source: 'validator', target: 'healer', animated: true, style: { stroke: '#38bdf8' } },
-    { id: 'e6-7', source: 'healer', target: 'approval', animated: true, style: { stroke: '#38bdf8' } },
+    { id: 'e3-4', source: 'evidence', target: 'diagnoser', animated: true, style: { stroke: '#10b981' } },
+    { id: 'e4-5', source: 'diagnoser', target: 'validator', animated: true, style: { stroke: '#0ea5e9' } },
+    { id: 'e5-6', source: 'validator', target: 'healer', animated: true, style: { stroke: '#10b981' } },
+    { id: 'e6-7', source: 'healer', target: 'approval', animated: true, style: { stroke: '#10b981' } },
     { id: 'e7-8', source: 'approval', target: 'verifier', animated: true, style: { stroke: '#10b981' } },
     { id: 'e2-8', source: 'detector', target: 'verifier', style: { stroke: '#10b981', strokeDasharray: '4,4' } }
   ], []);
 
   return (
-    <div className="w-full h-full min-h-[360px] bg-[#090D16] relative rounded-lg border border-slate-800 overflow-hidden">
+    <div className="w-full h-full min-h-[340px] bg-[#0F131C] relative rounded-[12px] border border-white/[0.07] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -140,7 +139,7 @@ export function ExecutionDAG({ activeNodes }: ExecutionDAGProps) {
         attributionPosition="bottom-left"
       >
         <Background color="#1e293b" gap={16} size={1} />
-        <Controls className="!bg-slate-900 !border-slate-800 !text-slate-300" />
+        <Controls className="!bg-[#0F131C] !border-white/[0.08] !text-slate-300" />
       </ReactFlow>
     </div>
   );
