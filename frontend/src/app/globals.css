@@ -1,44 +1,62 @@
 @import "tailwindcss";
 @import "../lib/tokens.css";
 
-@theme {
-  --color-void: var(--bg-void);
-  --color-surface-1: var(--bg-surface-1);
-  --color-surface-2: var(--bg-surface-2);
-  --color-overlay: var(--bg-overlay);
-
-  --color-border-subtle: var(--border-subtle);
-  --color-border-glow: var(--border-glow);
-  --color-border-active: var(--border-active);
-
-  --color-emerald: var(--neon-emerald);
-  --color-cyan: var(--neon-cyan);
-  --color-indigo: var(--neon-indigo);
-  --color-amber: var(--laser-amber);
-  --color-crimson: var(--crimson-flare);
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
   
-  --font-sans: var(--font-display);
-  --font-mono: var(--font-mono);
-
-  --spacing-1: var(--space-1);
-  --spacing-2: var(--space-2);
-  --spacing-3: var(--space-3);
-  --spacing-4: var(--space-4);
-  --spacing-6: var(--space-6);
-  --spacing-8: var(--space-8);
-
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-
-  --shadow-card: var(--shadow-card);
-  --shadow-glow-emerald: var(--shadow-glow-emerald);
-  --shadow-glow-amber: var(--shadow-glow-amber);
-  --shadow-glow-crimson: var(--shadow-glow-crimson);
+  html, body {
+    background-color: #07090E !important;
+    color: #F8FAFC !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
 }
 
-body {
-  background-color: var(--bg-void);
-  color: white;
-  font-family: var(--font-sans);
+/* Custom Cyberpunk Mission Control Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0F17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* React Flow Canvas Dark Theme Overrides */
+.react-flow__pane {
+  background: #07090E !important;
+}
+
+.react-flow__background {
+  background-color: #07090E !important;
+}
+
+.react-flow__controls button {
+  background-color: #0B0F17 !important;
+  color: #94A3B8 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.react-flow__controls button:hover {
+  background-color: #1E293B !important;
+  color: #38BDF8 !important;
+}
+
+.react-flow__attribution {
+  display: none !important;
 }
