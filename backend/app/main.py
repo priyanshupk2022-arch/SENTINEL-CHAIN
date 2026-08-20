@@ -10,6 +10,8 @@ from backend.app.api.routes_chaos import router as chaos_router
 from backend.app.api.routes_scrapers import router as scraper_router
 from backend.app.api.routes_threats import router as threats_router
 from backend.app.api.routes_telemetry import router as telemetry_router
+from backend.app.api.routes_targets import router as targets_router
+from backend.app.api.routes_discovery import router as discovery_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,9 +35,9 @@ async def lifespan(app: FastAPI):
     await db.close()
 
 app = FastAPI(
-    title="SENTINEL-CHAIN: Autonomous Threat Intelligence Self-Healing Engine",
-    description="Autonomous AI-driven self-healing proxy pipeline for Bright Data Scraper Studio",
-    version="1.0.0",
+    title="SENTINEL-CHAIN: Autonomous Web Intelligence & Self-Healing Platform",
+    description="Autonomous user-controlled web scraping, schema synthesis, and self-healing platform for Bright Data Scraper Studio",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -48,6 +50,8 @@ app.add_middleware(
 )
 
 # Mount Routers
+app.include_router(targets_router)
+app.include_router(discovery_router)
 app.include_router(proxy_router)
 app.include_router(chaos_router)
 app.include_router(scraper_router)
@@ -60,7 +64,7 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "SENTINEL-CHAIN",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "environment": settings.ENVIRONMENT
     }
 

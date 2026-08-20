@@ -1,31 +1,50 @@
 'use client';
 
 import React from 'react';
-import { Database, Workflow, Shield, Terminal, Settings, Activity, Flame, LayoutDashboard, Globe } from 'lucide-react';
+import { Database, Workflow, Shield, Terminal, Settings, Activity, Flame, LayoutDashboard, Globe, Plus } from 'lucide-react';
 
 interface SidebarNavProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
+  onOpenOnboarding?: () => void;
+  totalTargets?: number;
   totalThreats?: number;
 }
 
-export function SidebarNav({ activeTab, onSelectTab, totalThreats = 0 }: SidebarNavProps) {
+export function SidebarNav({
+  activeTab,
+  onSelectTab,
+  onOpenOnboarding,
+  totalTargets = 0,
+  totalThreats = 0
+}: SidebarNavProps) {
   const navItems = [
-    { id: 'harvests', label: 'HARVESTS', icon: Database, badge: `${totalThreats}` },
-    { id: 'pipelines', label: 'PIPELINES', icon: Workflow, badge: 'ACTIVE' },
-    { id: 'proxies', label: 'PROXIES', icon: Globe, badge: 'BRIGHT DATA' },
-    { id: 'logs', label: 'SYSTEM LOGS', icon: Terminal },
-    { id: 'chaos', label: 'CHAOS PROXY', icon: Flame, badge: 'TESTER' },
-    { id: 'settings', label: 'SETTINGS', icon: Settings }
+    { id: 'targets', label: 'TARGETS REGISTRY', icon: Globe, badge: `${totalTargets}` },
+    { id: 'cockpit', label: 'MISSION CONTROL', icon: LayoutDashboard },
+    { id: 'harvests', label: 'DATA HARVESTS', icon: Database, badge: `${totalThreats}` },
+    { id: 'proxies', label: 'BRIGHT DATA PROXIES', icon: Shield, badge: 'ACTIVE' },
+    { id: 'chaos', label: 'CHAOS SANDBOX', icon: Flame, badge: 'DEMO' },
+    { id: 'logs', label: 'SYSTEM LOGS', icon: Terminal }
   ];
 
   return (
     <aside className="w-full h-full bg-[#121215] border-r border-zinc-800/40 p-4 flex flex-col justify-between select-none">
-      <div className="space-y-6">
+      <div className="space-y-5">
+        {/* Onboard Target Button */}
+        {onOpenOnboarding && (
+          <button
+            onClick={onOpenOnboarding}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-[8px] font-mono text-xs font-semibold bg-[#6366F1] text-white hover:bg-indigo-500 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(99,102,241,0.25)] cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>ONBOARD TARGET</span>
+          </button>
+        )}
+
         {/* Navigation Items */}
         <div className="space-y-1">
           <span className="text-[10px] font-mono font-semibold tracking-wider text-zinc-500 uppercase px-3 block mb-2">
-            SECOPS NAVIGATION
+            PLATFORM NAVIGATION
           </span>
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
@@ -66,7 +85,7 @@ export function SidebarNav({ activeTab, onSelectTab, totalThreats = 0 }: Sidebar
           </span>
         </div>
         <div className="text-[11px] text-zinc-500">
-          SQLite WAL Active (Local Concurrency)
+          SQLite WAL Active (Multi-Target)
         </div>
       </div>
     </aside>

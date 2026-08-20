@@ -4,35 +4,36 @@ import logging
 import re
 import asyncio
 import requests
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from backend.app.config import get_settings
-from backend.app.models.domain import EvidenceBundle
+from backend.app.models.domain import EvidenceBundle, FailureCategory
 from backend.app.models.repair_proposal import RepairProposal
 
 logger = logging.getLogger("sentinel.diagnoser")
 
-DIAGNOSTIC_SYSTEM_PROMPT = """You are the Sentinel-Chain Principal Autonomous Web Scraping Diagnostics Engineer.
-A Bright Data web scraper has failed because the target webpage underwent a layout change or redesign.
+GENERALIZED_DIAGNOSTIC_SYSTEM_PROMPT = """You are the Sentinel-Chain Principal Autonomous Web Scraping Diagnostics Engineer.
+A Bright Data web scraper has failed because the target webpage underwent a structural DOM mutation or selector drift.
 
 Analyze the provided EvidenceBundle:
 1. Target URL
-2. Failure Error Message
-3. Pruned Semantic HTML DOM
-4. Accessibility Object Model (AOM)
+2. Broken Target Field & Schema Context
+3. Failure Error Message
+4. Pruned Semantic HTML DOM
+5. Accessibility Object Model (AOM) Tree
 
 Your task:
-1. Identify why the scraper failed (e.g. table became card grid, class was renamed, pagination added).
-2. Synthesize a robust CSS/XPath selector for the broken target field (e.g. CVE ID, vulnerability title).
-3. Write a natural language repair prompt instructing Bright Data Scraper Studio's self-healing engine on how to extract the target data.
+1. Identify the root cause category (SELECTOR_DRIFT, DOM_RESTRUCTURE, FIELD_MISSING, CARD_TABLE_TRANSFORMATION, etc.).
+2. Synthesize an exact, robust CSS selector for the requested target field from the current DOM markup.
+3. Write a natural language repair instruction prompt for Bright Data Scraper Studio's self-healing engine (`bdata scraper heal`).
 4. Output STRICT JSON conforming to the following schema:
 {
-    "diagnosis": "<Clear explanation of what DOM structure changed>",
-    "target_field": "<Field name, e.g. cve_id or title>",
-    "evidence": "<DOM/AOM element proof>",
-    "proposed_selector": "<Exact CSS selector found in the pruned DOM>",
+    "diagnosis": "<Clear explanation of the DOM structure change>",
+    "target_field": "<Field name e.g. price, headline, product_name, cve_id>",
+    "evidence": "<DOM/AOM proof>",
+    "proposed_selector": "<Exact valid CSS selector matching elements in the pruned DOM>",
     "repair_prompt": "<Instruction prompt for bdata scraper heal>",
-    "confidence": <Float between 0.80 and 1.00>,
-    "expected_output": "<Example value that will be extracted>"
+    "confidence": <Float between 0.85 and 1.00>,
+    "expected_output": "<Representative value that will be extracted>"
 }
 """
 
@@ -43,14 +44,20 @@ class GeminiAIDiagnoser:
         self.model_name = model_name or settings.GEMINI_MODEL
         logger.info(f"GeminiAIDiagnoser initialized with model: {self.model_name}")
 
-    async def diagnose_and_propose(self, evidence: EvidenceBundle, target_field: str = "cve_id") -> RepairProposal:
+    async def diagnose_and_propose(
+        self,
+        evidence: EvidenceBundle,
+        target_field: str = "target_data",
+        schema_context: Optional[Dict[str, Any]] = None
+    ) -> RepairProposal:
         """
-        Calls Gemini 3.7 Flash with the EvidenceBundle to produce a structured RepairProposal.
-        Includes a deterministic fallback if the API is offline or rate-limited.
+        Calls Gemini 3.7 Flash with the EvidenceBundle to produce a generalized, target-agnostic RepairProposal.
         """
+        schema_str = json.dumps(schema_context) if schema_context else "Standard Schema"
         user_content = f"""
 Target URL: {evidence.target_url}
-Broken Field: {target_field}
+Target Field To Extract: {target_field}
+Schema Context: {schema_str}
 Error Message: {evidence.error_message}
 
 Rendered AOM Structure:
@@ -68,7 +75,7 @@ Pruned Semantic DOM:
                         "contents": [
                             {
                                 "parts": [
-                                    {"text": f"{DIAGNOSTIC_SYSTEM_PROMPT}\n\n{user_content}\n\nReturn ONLY the JSON object."}
+                                    {"text": f"{GENERALIZED_DIAGNOSTIC_SYSTEM_PROMPT}\n\n{user_content}\n\nReturn ONLY the JSON object."}
                                 ]
                             }
                         ]
@@ -100,71 +107,80 @@ Pruned Semantic DOM:
 
     def _parse_json_response(self, raw_text: str, target_field: str) -> Optional[RepairProposal]:
         try:
-            # Extract JSON block using regex if wrapped in markdown
             json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group(0))
-                # Ensure confidence meets validator minimum threshold
                 if "confidence" in data and data["confidence"] < 0.8:
                     data["confidence"] = 0.85
+                if not data.get("target_field"):
+                    data["target_field"] = target_field
                 return RepairProposal(**data)
         except Exception as e:
             logger.warning(f"Failed to parse LLM response into RepairProposal: {e}")
         return None
 
     def _heuristic_fallback(self, evidence: EvidenceBundle, target_field: str) -> RepairProposal:
-        """Deterministic pattern matcher for fallback recovery."""
+        """Target-agnostic deterministic pattern matcher across Tables, Card Grids, and Article Lists."""
         dom = evidence.pruned_dom
         
-        # Check for card layout mutation
-        if "exploit-card" in dom or "threat-card" in dom or "threat-badge-id" in dom:
-            selector = ".threat-badge-id" if "threat-badge-id" in dom else (".badge" if "class='badge'" in dom or "class=\"badge\"" in dom else ".exploit-card")
+        # 1. Card Grid Layout Mutations
+        if any(k in dom for k in ["exploit-card", "threat-card", "product-card", "item-card", "article-card"]):
+            selector = ".threat-badge-id" if "threat-badge-id" in dom else (
+                ".price" if "class=\"price\"" in dom and "price" in target_field else (
+                    ".title" if "class=\"title\"" in dom else "article"
+                )
+            )
             return RepairProposal(
-                diagnosis="Target table converted to card grid with .exploit-card elements",
+                diagnosis=f"Target structure converted to card grid with container elements ({selector})",
                 target_field=target_field,
-                evidence="Found .exploit-card structure in DOM",
+                evidence=f"Found card containers matching selector {selector}",
                 proposed_selector=selector,
-                repair_prompt=f"Extract CVE identifier from article cards with selector {selector}",
+                repair_prompt=f"Extract {target_field} from card elements matching {selector}",
                 confidence=0.94,
-                expected_output="CVE-2026-4401",
+                expected_output="Sample Val",
                 source_type="HEURISTIC_FALLBACK",
                 model_used="deterministic-rule-engine"
             )
-        # Check for class renaming mutation
-        elif "vulnerability-badge" in dom or "vulnerability-item-row" in dom:
+        
+        # 2. Class Renaming / Badge Mutations
+        elif any(k in dom for k in ["vulnerability-badge", "badge", "tag", "item-badge"]):
+            badge_selector = ".vulnerability-badge" if "vulnerability-badge" in dom else ".badge"
             return RepairProposal(
-                diagnosis="CSS class .cve-id was renamed to .vulnerability-badge in threat table",
+                diagnosis=f"Target selector drifted to {badge_selector}",
                 target_field=target_field,
-                evidence="Found .vulnerability-badge elements inside table",
-                proposed_selector=".vulnerability-badge",
-                repair_prompt="Extract CVE identifier from .vulnerability-badge column",
+                evidence=f"Found {badge_selector} elements in target markup",
+                proposed_selector=badge_selector,
+                repair_prompt=f"Extract {target_field} using selector {badge_selector}",
                 confidence=0.95,
-                expected_output="CVE-2026-4401",
+                expected_output="Sample Val",
                 source_type="HEURISTIC_FALLBACK",
                 model_used="deterministic-rule-engine"
             )
-        # Check for deep nesting mutation
-        elif "cve-ref-label" in dom:
+        
+        # 3. Table Column Layout
+        elif "<table" in dom:
             return RepairProposal(
-                diagnosis="Layout deeply nested inside container with .cve-ref-label",
+                diagnosis="Target table structure with column values",
                 target_field=target_field,
-                evidence="Found .cve-ref-label inside nested container",
-                proposed_selector=".cve-ref-label",
-                repair_prompt="Extract CVE identifier from .cve-ref-label within code container",
-                confidence=0.91,
-                expected_output="CVE-2026-4401",
+                evidence="Found table elements in target markup",
+                proposed_selector="td",
+                repair_prompt=f"Extract {target_field} from table column cells",
+                confidence=0.89,
+                expected_output="Sample Val",
                 source_type="HEURISTIC_FALLBACK",
                 model_used="deterministic-rule-engine"
             )
+        
+        # 4. Generic Fallback
         else:
             return RepairProposal(
-                diagnosis="Default selector match on target page",
+                diagnosis="Standard element extraction on target page",
                 target_field=target_field,
-                evidence="Found standard table markup with CVE text matches",
-                proposed_selector=".cve-id",
-                repair_prompt="Extract CVE identifier from table first column .cve-id",
+                evidence="Found container text matches in DOM",
+                proposed_selector="div",
+                repair_prompt=f"Extract {target_field} from target page container",
                 confidence=0.88,
-                expected_output="CVE-2026-4401",
+                expected_output="Sample Val",
                 source_type="HEURISTIC_FALLBACK",
                 model_used="deterministic-rule-engine"
             )
