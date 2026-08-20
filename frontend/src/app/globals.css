@@ -9,17 +9,16 @@
   }
   
   html, body {
-    background-color: #080B11 !important;
-    color: #F8FAFC !important;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
+    background-color: #09090B !important;
+    color: #F4F4F5 !important;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
 }
 
-/* Subtle Shimmer Skeleton Loader */
+/* Animations */
 @keyframes shimmer {
   0% {
     background-position: -200% 0;
@@ -29,16 +28,36 @@
   }
 }
 
-.skeleton-shimmer {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
+@keyframes pulseSubtle {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
-/* Minimal Whisper Scrollbars */
+@keyframes nodePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, rgba(39, 39, 42, 0.4) 25%, rgba(63, 63, 70, 0.6) 50%, rgba(39, 39, 42, 0.4) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Minimal Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -46,40 +65,40 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: #27272A;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: #3F3F46;
 }
 
-/* React Flow Canvas Dark Styling */
+/* React Flow Canvas Styling */
 .react-flow__pane {
-  background: #080B11 !important;
+  background: #09090B !important;
 }
 
 .react-flow__background {
-  background-color: #080B11 !important;
+  background-color: #09090B !important;
 }
 
 .react-flow__controls {
   border-radius: 8px !important;
   overflow: hidden !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(39, 39, 42, 0.4) !important;
 }
 
 .react-flow__controls button {
-  background-color: #0F131C !important;
-  color: #94A3B8 !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background-color: #121215 !important;
+  color: #A1A1AA !important;
+  border-bottom: 1px solid rgba(39, 39, 42, 0.4) !important;
   transition: all 0.15s ease;
 }
 
 .react-flow__controls button:hover {
-  background-color: #151B27 !important;
-  color: #10B981 !important;
+  background-color: #18181B !important;
+  color: #6366F1 !important;
 }
 
 .react-flow__attribution {
