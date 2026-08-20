@@ -2,13 +2,13 @@ import os
 from functools import lru_cache
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 class Settings:
     def __init__(self):
-        self.GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-        self.GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
-        self.BRIGHT_DATA_API_KEY: str = os.getenv("BRIGHT_DATA_API_KEY", "")
+        self.GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "").strip("\"'")
+        self.GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.7-flash").strip("\"'")
+        self.BRIGHT_DATA_API_KEY: str = os.getenv("BRIGHT_DATA_API_KEY", "").strip("\"'")
         self.DATABASE_PATH: str = os.getenv("DATABASE_PATH", os.path.join(os.getcwd(), "data", "sentinel_chain.db"))
         self.PORT: int = int(os.getenv("PORT", "8000"))
         self.HOST: str = os.getenv("HOST", "127.0.0.1")
@@ -20,4 +20,5 @@ class Settings:
 
 @lru_cache()
 def get_settings() -> Settings:
+    load_dotenv(override=True)
     return Settings()

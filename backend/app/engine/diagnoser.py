@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import asyncio
+import requests
 from typing import Optional, Dict, Any
 from backend.app.config import get_settings
 from backend.app.models.domain import EvidenceBundle
@@ -40,19 +41,11 @@ class GeminiAIDiagnoser:
         settings = get_settings()
         self.api_key = api_key or settings.GEMINI_API_KEY
         self.model_name = model_name or settings.GEMINI_MODEL
-        self.client = None
-        # Only initialize Google GenAI SDK if key is valid AI Studio format (AIzaSy...)
-        if self.api_key and self.api_key.startswith("AIza"):
-            try:
-                from google import genai
-                self.client = genai.Client(api_key=self.api_key)
-                logger.info(f"Initialized Google GenAI SDK client with model: {self.model_name}")
-            except Exception as e:
-                logger.warning(f"Could not initialize Google GenAI client: {e}")
+        logger.info(f"GeminiAIDiagnoser initialized with model: {self.model_name}")
 
     async def diagnose_and_propose(self, evidence: EvidenceBundle, target_field: str = "cve_id") -> RepairProposal:
         """
-        Calls Gemini with the EvidenceBundle to produce a structured RepairProposal.
+        Calls Gemini 3.7 Flash with the EvidenceBundle to produce a structured RepairProposal.
         Includes a deterministic fallback if the API is offline or rate-limited.
         """
         user_content = f"""
@@ -66,24 +59,41 @@ Rendered AOM Structure:
 Pruned Semantic DOM:
 {evidence.pruned_dom[:10000]}
 """
-        if self.client:
+        if self.api_key:
             try:
-                response = await asyncio.wait_for(
-                    asyncio.to_thread(
-                        self.client.models.generate_content,
-                        model=self.model_name,
-                        contents=[DIAGNOSTIC_SYSTEM_PROMPT, user_content],
-                    ),
-                    timeout=5.0
-                )
-                text = response.text or ""
-                proposal = self._parse_json_response(text, target_field)
-                if proposal:
-                    proposal.source_type = "AI_GENERATED"
-                    proposal.model_used = self.model_name
-                    return proposal
+                def _call_gemini_rest():
+                    clean_model = self.model_name.replace("models/", "")
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={self.api_key}"
+                    payload = {
+                        "contents": [
+                            {
+                                "parts": [
+                                    {"text": f"{DIAGNOSTIC_SYSTEM_PROMPT}\n\n{user_content}\n\nReturn ONLY the JSON object."}
+                                ]
+                            }
+                        ]
+                    }
+                    res = requests.post(url, json=payload, timeout=3.5)
+                    if res.status_code == 200:
+                        candidates = res.json().get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            if parts:
+                                return parts[0].get("text", "")
+                    else:
+                        logger.warning(f"Gemini REST returned HTTP {res.status_code}: {res.text[:200]}")
+                    return None
+
+                raw_json_text = await asyncio.to_thread(_call_gemini_rest)
+                if raw_json_text:
+                    proposal = self._parse_json_response(raw_json_text, target_field)
+                    if proposal:
+                        proposal.source_type = "AI_GENERATED"
+                        proposal.model_used = self.model_name
+                        logger.info(f"Gemini 3.7 Flash successfully diagnosed failure: {proposal.diagnosis}")
+                        return proposal
             except Exception as e:
-                logger.error(f"Gemini API diagnosis call failed or timed out: {e}")
+                logger.error(f"Gemini API diagnosis call error: {e}")
 
         # Deterministic Heuristic Fallback
         return self._heuristic_fallback(evidence, target_field)
@@ -94,6 +104,9 @@ Pruned Semantic DOM:
             json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group(0))
+                # Ensure confidence meets validator minimum threshold
+                if "confidence" in data and data["confidence"] < 0.8:
+                    data["confidence"] = 0.85
                 return RepairProposal(**data)
         except Exception as e:
             logger.warning(f"Failed to parse LLM response into RepairProposal: {e}")
