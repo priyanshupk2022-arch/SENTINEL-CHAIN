@@ -1,106 +1,36 @@
 @import "tailwindcss";
-@import "../lib/tokens.css";
 
-@layer base {
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  html, body {
-    background-color: #09090B !important;
-    color: #F4F4F5 !important;
-    font-family: var(--font-sans);
-    overflow-x: hidden;
-    min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-  }
+:root {
+  --background: #FAFAFA;
+  --foreground: #09090B;
+  --card-bg: #FFFFFF;
+  --card-border: #E4E4E7;
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --accent: #10B981;
+  --muted: #71717A;
 }
 
-/* Animations */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@keyframes pulseSubtle {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes nodePulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 rgba(16, 185, 129, 0);
-  }
-  100% {
-    transform: scale(1.02);
-    box-shadow: 0 0 25px rgba(16, 185, 129, 0.35);
-  }
-}
-
-.skeleton-shimmer {
-  background: linear-gradient(90deg, rgba(39, 39, 42, 0.4) 25%, rgba(63, 63, 70, 0.6) 50%, rgba(39, 39, 42, 0.4) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite linear;
-}
-
-/* Minimal Scrollbars */
+/* Custom modern scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #27272A;
-  border-radius: 4px;
+  background: #CBD5E1;
+  border-radius: 9999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #3F3F46;
-}
-
-/* React Flow Canvas Styling */
-.react-flow__pane {
-  background: #09090B !important;
-}
-
-.react-flow__background {
-  background-color: #09090B !important;
-}
-
-.react-flow__controls {
-  border-radius: 8px !important;
-  overflow: hidden !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
-  border: 1px solid rgba(39, 39, 42, 0.4) !important;
-}
-
-.react-flow__controls button {
-  background-color: #121215 !important;
-  color: #A1A1AA !important;
-  border-bottom: 1px solid rgba(39, 39, 42, 0.4) !important;
-  transition: all 0.15s ease;
-}
-
-.react-flow__controls button:hover {
-  background-color: #18181B !important;
-  color: #6366F1 !important;
-}
-
-.react-flow__attribution {
-  display: none !important;
+  background: #94A3B8;
 }
