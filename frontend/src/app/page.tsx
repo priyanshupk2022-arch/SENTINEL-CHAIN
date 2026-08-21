@@ -2,18 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { SleekHeader } from '@/components/SleekHeader';
-import { TargetIntentInput } from '@/components/TargetIntentInput';
-import { CleanDataGrid } from '@/components/CleanDataGrid';
-import { SelfHealingLab } from '@/components/SelfHealingLab';
-import { BrightDataTerminal } from '@/components/BrightDataTerminal';
+import { LandingScreen } from '@/components/screens/LandingScreen';
+import { TargetScreen } from '@/components/screens/TargetScreen';
+import { DataGridScreen } from '@/components/screens/DataGridScreen';
+import { SelfHealingScreen } from '@/components/screens/SelfHealingScreen';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function App() {
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [currentScreen, setCurrentScreen] = useState<number>(0);
   const [targetUrl, setTargetUrl] = useState<string>('http://127.0.0.1:8000/api/proxy/target');
-  const [targetName, setTargetName] = useState<string>('Exploit-DB Security Feed');
-  const [intentPrompt, setIntentPrompt] = useState<string>('Extract CVE ID, vulnerability title, severity, and publication date');
+  const [targetName, setTargetName] = useState<string>('Exploit-DB Security Advisories');
+  const [intentPrompt, setIntentPrompt] = useState<string>('Extract CVE ID, vulnerability title, severity, affected software, and published date');
   const [records, setRecords] = useState<any[]>([]);
   const [isScraping, setIsScraping] = useState<boolean>(false);
   const [isHealing, setIsHealing] = useState<boolean>(false);
@@ -29,7 +29,7 @@ export default function App() {
   ]);
   const [latestDiagnosis, setLatestDiagnosis] = useState<any>(null);
 
-  // Fetch initial records
+  // Fetch threat records on mount
   const fetchRecords = async () => {
     try {
       const res = await fetch(`${API_BASE}/api/threats?limit=50`);
@@ -46,7 +46,7 @@ export default function App() {
     fetchRecords();
   }, []);
 
-  // Helper to add terminal log
+  // Add terminal log helper
   const addTerminalLog = (command: string, output: string, status: 'running' | 'success' | 'failed' | 'healed', durationMs?: number) => {
     const newLog = {
       id: `log-${Date.now()}-${Math.random()}`,
@@ -62,12 +62,11 @@ export default function App() {
   // Run Scraper with Bright Data Scraper Studio
   const handleRunScraper = async () => {
     setIsScraping(true);
-    setCurrentStep(2);
     const start = performance.now();
 
     addTerminalLog(
       `npx -p @brightdata/cli bdata scraper run c_sentinel_cve_threats --url ${targetUrl} --json`,
-      'Connecting to Bright Data Unlocker proxy & rendering target DOM...',
+      'Routing through Bright Data Unlocker Proxy & parsing target security feed...',
       'running'
     );
 
@@ -93,10 +92,13 @@ export default function App() {
 
       addTerminalLog(
         `npx -p @brightdata/cli bdata scraper run c_sentinel_cve_threats --url ${targetUrl} --json`,
-        `Extracted ${records.length || 20} clean structured records.\nStatus: 200 OK | Data integrity verified.`,
+        `Extracted ${records.length || 20} clean vulnerability records.\nStatus: 200 OK | Data validation passed.`,
         'success',
         dur
       );
+
+      // Navigate smoothly to Screen 2 (Data Grid)
+      setCurrentScreen(2);
     } catch (e: any) {
       addTerminalLog(
         `bdata scraper run c_sentinel_cve_threats --url ${targetUrl}`,
@@ -109,16 +111,15 @@ export default function App() {
     }
   };
 
-  // 1-Click Simulate Break & Auto-Heal
+  // Simulate Website Redesign Break & Auto-Heal via bdata heal
   const handleSimulateBreakAndHeal = async () => {
     setIsHealing(true);
-    setCurrentStep(3);
     const start = performance.now();
 
     // Step A: Mutate website layout
     addTerminalLog(
-      'Target Website Layout Redesign Detected (HTTP 200 with 0 Records)',
-      'DOM Mutation: <table> converted to responsive CSS Grid (.exploit-card containers).\nFailure Detector raised BROKEN state.',
+      'Target Security Advisory Feed Layout Mutated (HTTP 200 with 0 Records)',
+      'DOM Mutation: <table> restructured to CSS Grid (.exploit-card containers).\nFailure Detector raised BROKEN state.',
       'failed'
     );
 
@@ -130,7 +131,7 @@ export default function App() {
         body: JSON.stringify({ mode: 'table_to_cards' })
       });
 
-      // Execute AI Diagnosis & Healing
+      // Gemini 3.7 Diagnosis
       addTerminalLog(
         'Gemini 3.7 Flash: Inspecting Playwright Accessibility Object Model (AOM)...',
         'Diagnosis: Target changed table rows to card containers.\nSynthesizing repair prompt for Scraper Studio...',
@@ -146,19 +147,18 @@ export default function App() {
         })
       });
 
-      const healData = await healRes.json();
       const dur = performance.now() - start;
 
       setLatestDiagnosis({
         brokenSelector: 'table.cve-grid tr td.cve-id',
         healedSelector: 'div.exploit-card span.cve-tag',
-        reason: 'Target website changed HTML table into responsive article card grid',
+        reason: 'Target security feed altered HTML table into responsive article card grid',
         status: 'HEALTHY'
       });
 
       addTerminalLog(
         'npx -p @brightdata/cli bdata scraper heal c_sentinel_cve_threats -- "Extract cve_id from div.exploit-card span.cve-tag"',
-        'Scraper repaired in-place in Bright Data Scraper Studio.\nExecuting bdata scraper approve c_sentinel_cve_threats...\nRecovery Verified: 100% extraction restored.',
+        'Scraper repaired in-place in Bright Data Scraper Studio.\nExecuting bdata scraper approve c_sentinel_cve_threats...\nRecovery Verified: 100% data extraction restored.',
         'healed',
         dur
       );
@@ -184,7 +184,7 @@ export default function App() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `brightdata_clean_harvest_${Date.now()}.csv`);
+    link.setAttribute('download', `sentinel_threat_intel_${Date.now()}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -192,21 +192,23 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8FAFC] text-slate-900 font-sans">
-      {/* Top Header */}
+      {/* Top Header with Stepper and Bright Data Status */}
       <SleekHeader
-        currentStep={currentStep}
-        onSelectStep={setCurrentStep}
+        currentStep={currentScreen}
+        onSelectStep={(s) => setCurrentScreen(s)}
         totalRecords={records.length}
         isScraping={isScraping}
         onExportCSV={handleExportCSV}
       />
 
-      {/* Main 2-Column Split Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: 3-Step Guided Workflow (Col-Span 7) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* STEP 1: Target URL & Intent */}
-          <TargetIntentInput
+      {/* Screen Render Switcher */}
+      <main className="flex-1 flex flex-col">
+        {currentScreen === 0 && (
+          <LandingScreen onLaunch={() => setCurrentScreen(1)} />
+        )}
+
+        {currentScreen === 1 && (
+          <TargetScreen
             targetUrl={targetUrl}
             setTargetUrl={setTargetUrl}
             targetName={targetName}
@@ -215,36 +217,45 @@ export default function App() {
             setIntentPrompt={setIntentPrompt}
             isScraping={isScraping}
             onRunScraper={handleRunScraper}
+            onBack={() => setCurrentScreen(0)}
           />
+        )}
 
-          {/* STEP 2: Harvested Clean Data View */}
-          <CleanDataGrid
+        {currentScreen === 2 && (
+          <DataGridScreen
             records={records}
             isLoading={isScraping}
+            terminalLogs={terminalLogs}
+            collectorId="c_sentinel_cve_threats"
+            targetUrl={targetUrl}
             onExportCSV={handleExportCSV}
+            onBack={() => setCurrentScreen(1)}
+            onNext={() => setCurrentScreen(3)}
           />
+        )}
 
-          {/* STEP 3: Real-World Self-Healing Lab */}
-          <SelfHealingLab
+        {currentScreen === 3 && (
+          <SelfHealingScreen
             isHealing={isHealing}
             onSimulateBreakAndHeal={handleSimulateBreakAndHeal}
             latestDiagnosis={latestDiagnosis}
-          />
-        </div>
-
-        {/* Right Column: Dedicated Bright Data Engine Console (Col-Span 5) */}
-        <div className="lg:col-span-5 h-[calc(100vh-6.5rem)] sticky top-20">
-          <BrightDataTerminal
-            logs={terminalLogs}
+            terminalLogs={terminalLogs}
             collectorId="c_sentinel_cve_threats"
             targetUrl={targetUrl}
+            onBack={() => setCurrentScreen(2)}
+            onRestart={() => setCurrentScreen(1)}
           />
-        </div>
+        )}
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-slate-200 bg-white py-4 text-center text-xs font-mono text-slate-500">
-        SENTINEL-CHAIN // WE-MAKE-DEVS SCRAPE-VERSE HACKATHON 2026 // POWERED BY BRIGHT DATA SCRAPER STUDIO & GEMINI 3.7 FLASH
+      {/* Modern Footer */}
+      <footer className="w-full border-t border-slate-200 bg-white py-3.5 px-6 flex flex-wrap items-center justify-between text-xs font-mono text-slate-500">
+        <div>
+          SENTINEL-CHAIN // WE-MAKE-DEVS SCRAPE-VERSE HACKATHON 2026
+        </div>
+        <div>
+          POWERED BY <strong>BRIGHT DATA SCRAPER STUDIO</strong> & <strong>GEMINI 3.7 FLASH</strong>
+        </div>
       </footer>
     </div>
   );
