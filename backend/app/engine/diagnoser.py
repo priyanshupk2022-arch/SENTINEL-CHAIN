@@ -110,8 +110,8 @@ Pruned Semantic DOM:
             json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
             if json_match:
                 data = json.loads(json_match.group(0))
-                if "confidence" in data and data["confidence"] < 0.8:
-                    data["confidence"] = 0.85
+                # NOTE: never inflate low-confidence proposals — the deterministic
+                # gate (validator.min_confidence) must see the model's true score.
                 if not data.get("target_field"):
                     data["target_field"] = target_field
                 return RepairProposal(**data)
@@ -125,11 +125,21 @@ Pruned Semantic DOM:
         
         # 1. Card Grid Layout Mutations
         if any(k in dom for k in ["exploit-card", "threat-card", "product-card", "item-card", "article-card"]):
-            selector = ".threat-badge-id" if "threat-badge-id" in dom else (
-                ".price" if "class=\"price\"" in dom and "price" in target_field else (
-                    ".title" if "class=\"title\"" in dom else "article"
-                )
-            )
+            # Propose the most specific selector that ACTUALLY exists in the DOM.
+            # Never propose a selector the evidence does not contain — the
+            # deterministic gate will (correctly) reject unverifiable selectors.
+            if "threat-badge-id" in dom:
+                selector = ".threat-badge-id"
+            elif 'class="price"' in dom and "price" in target_field:
+                selector = ".price"
+            elif 'class="title"' in dom:
+                selector = ".title"
+            elif "class=\"badge\"" in dom or "class='badge'" in dom:
+                selector = ".badge"
+            elif "<article" in dom:
+                selector = "article"
+            else:
+                selector = "div"
             return RepairProposal(
                 diagnosis=f"Target structure converted to card grid with container elements ({selector})",
                 target_field=target_field,

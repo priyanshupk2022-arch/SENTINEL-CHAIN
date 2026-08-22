@@ -43,7 +43,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Local dev surface only. Wildcard "*" is invalid together with credentials
+    # and would let any origin drive mutating endpoints (heal/approve/chaos).
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

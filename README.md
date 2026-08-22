@@ -16,11 +16,11 @@
 [![Next.js 15](https://img.shields.io/badge/Next.js-15.0-black.svg)](https://nextjs.org/)
 [![Bright Data](https://img.shields.io/badge/Bright%20Data-Scraper%20Studio%20CLI-blue.svg)](https://brightdata.com/)
 [![Gemini](https://img.shields.io/badge/AI%20Diagnoser-Gemini%20Flash-8E44AD.svg)](https://deepmind.google/technologies/gemini/)
-[![Tests Passing](https://img.shields.io/badge/Tests-13%2F13%20Passed-brightgreen.svg)](https://github.com/)
+[![Tests Passing](https://img.shields.io/badge/Tests-18%2F18%20Passed-brightgreen.svg)](https://github.com/)
 [![Simulation Recovery](https://img.shields.io/badge/Simulation%20Recovery-100%25-brightgreen.svg)](https://github.com/)
 [![Security Defense](https://img.shields.io/badge/Injection%20Defense-20%2F20%20Blocked-success.svg)](https://github.com/)
 
-**SENTINEL-CHAIN** is an **Autonomous Cyber Threat Intelligence Harvester & Self-Healing Pipeline**. Built for Security Operations Centers (SOC) and Threat Intel teams, Sentinel-Chain scrapes critical vulnerability intelligence (Exploit-DB, CVE advisories, zero-day feeds) using the **Bright Data Scraper Studio CLI** contract.
+**SENTINEL-CHAIN** is an **Autonomous Web Intelligence Acquisition & Self-Healing Platform**. Built for Security Operations Centers (SOC) and Threat Intel teams, Sentinel-Chain acquires structured intelligence from arbitrary user-defined targets (vulnerability feeds, advisory portals, or any public web source) using the **Bright Data Scraper Studio CLI** contract.
 
 When target websites undergo structural redesigns, class renaming, or layout mutations, Sentinel-Chain automatically detects the breakdown, harvests visual & DOM evidence via **Playwright**, synthesizes an optimal self-healing selector using **Gemini AI**, validates the proposal through a deterministic safety gate, and repairs the scraper unattended via `bdata scraper heal` and `bdata scraper approve`.
 
@@ -84,14 +84,18 @@ Sentinel-Chain strictly enforces an air-gapped security boundary:
 
 ## 📊 Evaluation & Benchmark Results
 
-Benchmarked across our **100-case Golden Dataset** (`eval/golden_dataset.jsonl`):
+Benchmarked across our **100-case Golden Dataset** (`eval/golden_dataset.jsonl`) using the deterministic heuristic diagnoser (no API key required):
 
 | Test Suite | Total Cases | Simulation Success Rate | Defense Rate | Mean Latency (Local) |
 | :--- | :---: | :---: | :---: | :---: |
-| **Happy Path Tables** | 40 | **100.0%** (40/40) | N/A | 1.15 ms |
-| **Edge Case Redesigns** | 40 | **100.0%** (40/40) | N/A | 1.22 ms |
-| **Adversarial Injections** | 20 | N/A | **100.0%** (20/20 blocked) | 0.85 ms |
-| **Overall Platform** | **100** | **100.0%** (Simulated) | **20/20 Blocked** | **1.19 ms** |
+| **Happy Path Tables** | 40 | **100.0%** (40/40) | N/A | ~1 ms |
+| **Edge Case Redesigns** | 40 | **100.0%** (40/40) | N/A | ~1 ms |
+| **Adversarial Injections** | 20 | N/A | **100.0%** (20/20 blocked) | <1 ms |
+| **Overall Platform** | **100** | **100.0% (Simulated)** | **20/20 Blocked** | **<1 ms** |
+
+> These are **simulation-mode** numbers (`SimulatedLocalCliRunner` / heuristic fallback path).
+> Real cloud Bright Data execution requires a live `BRIGHT_DATA_API_KEY` and is classified
+> **ADAPTER READY — NOT YET VERIFIED** until run against a live collector.
 
 ---
 
@@ -113,10 +117,10 @@ cp .env.example .env
 
 ### 2. Install Dependencies & Initialize Database
 ```powershell
-# Python environment
+# Python environment (deps declared in backend/pyproject.toml)
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r backend/requirements.txt
+pip install fastapi "uvicorn[standard]" playwright httpx pydantic python-dotenv aiosqlite beautifulsoup4 requests pytest pytest-asyncio
 playwright install chromium
 
 # Frontend dependencies

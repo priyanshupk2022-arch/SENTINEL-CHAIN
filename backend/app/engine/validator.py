@@ -11,7 +11,10 @@ DANGEROUS_SHELL_PATTERNS = [
     r";", r"&&", r"\|\|", r"\|", r"`", r"\$\(", r"\$\{",
     r">", r"<", r"\brm\b", r"\bcurl\b", r"\bwget\b", r"\bsh\b",
     r"\bbash\b", r"\bexec\b", r"\bpwsh\b", r"\bpowershell\b",
-    r"\bcmd\b", r"\bnode\b", r"\bpython\b", r"--[a-zA-Z0-9_-]+"
+    r"\bcmd\b", r"\bnode\b", r"\bpython\b", r"--[a-zA-Z0-9_-]+",
+    # Control characters (incl. NUL) are never legitimate in a natural-language
+    # repair prompt and can corrupt argv handling downstream.
+    r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]"
 ]
 
 class RepairValidator:
