@@ -1,0 +1,18 @@
+############ REVIEWER 0 ############
+## SENTINEL-CHAIN — Principal Architect Review
+
+############ REVIEWER 1 ############
+**BACKEND REVIEW — SENTINEL-CHAIN** (4 files inspected)
+
+############ REVIEWER 2 ############
+## SENTINEL-CHAIN — Bright Data / Web Engineering Review
+
+############ REVIEWER 3 ############
+**AI ENGINEERING REVIEW — SENTINEL-CHAIN** (4 files inspected)
+
+############ REVIEWER 4 ############
+**SECURITY REVIEW — SENTINEL-CHAIN backend** (all 10 files inspected)
+
+############ REVIEWER 5 ############
+## PRODUCT/JUDGE Review — SENTINEL-CHAIN
+
