@@ -77,3 +77,30 @@ None blocking UI work. Recommended pre-demo order:
 | Frontend builds | VERIFIED BY RUNTIME |
 | Real cloud healing | SIMULATION ONLY / NOT VERIFIED |
 | Correlation & Exposure engine | NOT IMPLEMENTED |
+
+---
+
+## ADDENDUM — Full Six-Reviewer Deep Findings (2026-08-22, post-a78b017)
+
+### NEW P1 findings (not fixed yet)
+1. **FRONTEND FABRICATES RESULTS (Product reviewer):** `page.tsx:141-164` fires `/api/scraper/trigger` then HARDCODES `latestDiagnosis`, healed selector, and "Recovery Verified: 100%" client-side — UI tells its own story regardless of backend outcome. Pre-seeded terminal log w/ masked API key on mount. `SelfHealingScreen.tsx` default diff identical every run. → MUST wire to real backend responses before demo.
+2. **HEAL/APPROVE CHAIN NO ERROR HANDLING (Backend):** steps 7–9 have zero try/except; heal exit_code never checked; approve runs even if heal failed; exception leaves target stuck RUNNING forever.
+3. **SSRF BYPASSES (Bright Data reviewer):** DNS-rebinding TOCTOU (resolve-at-validate only); redirects followed unvalidated (requests + Playwright auto-follow → 169.254.169.254 possible); `allow_local_demo=True` substring bypass attacker-controllable; no IPv6-mapped/userinfo/port checks.
+4. **OPTION INJECTION via target_url (Security):** `/api/scraper/trigger` passes target_url raw after `--url`; value starting with `-` injects bdata flags. collector_id sanitized but URL not.
+5. **SECRET LEAK PATH (Security, P2):** CliExecutionResult echoes full stdout/stderr/command to caller; CLI error output could surface env-injected API key.
+
+### P2/P3 debt (documented)
+- Repair-prompt denylist misses \n/\t (newline prompt-splitting); denylist inherently bypass-prone.
+- Greedy JSON regex mangles multi-object stdout; no upfront BRIGHT_DATA_API_KEY presence check.
+- Queue: RAM-only state; scraper_jobs table exists but never written; singleton not thread-safe; multi-worker uvicorn breaks polling.
+- Heuristic fallback overfit to demo class names; confidence values hardcoded not evidence-derived; expected_output="Sample Val" fabricated.
+- "Gemini 3.7 Flash" is NOT a real public model name (Gemini Flash = 1.5/2.x) — branding must be corrected or actual model id confirmed before any judge/demo.
+- Collector-ID constant duplicated ×7; DEFAULT_COLLECTOR_ID config unused; duplicate Gemini REST clients (diagnoser + schema_generator); dead alias shims.
+
+### Recommended pre-demo fix order (next session)
+1. Wire SelfHealingScreen/page.tsx to REAL backend diagnosis + logs (kills fabrication finding)
+2. try/except around heal→approve→re-run + exit_code checks + FAILED telemetry
+3. Validate target_url at every entry point (reuse SecurityUrlValidator incl. scheme/leading-dash guard)
+4. Redirect + resolved-IP pinning in fetch paths (TOCTOU kill)
+5. Redact CLI stdout/stderr/command from API responses (secret-leak)
+6. Correct AI model branding everywhere
